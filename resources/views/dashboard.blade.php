@@ -22,24 +22,54 @@
             from { box-shadow: 0 0 5px #f56565; }
             to { box-shadow: 0 0 20px #f56565, 0 0 30px #f56565; }
         }
+        
+        /* Fixed height for better scrolling */
+        .dashboard-container {
+            min-height: 100vh;
+            max-height: 100vh;
+            overflow-y: auto;
+        }
+        
+        /* Compact chart container */
+        .chart-container {
+            height: 200px !important;
+            max-height: 200px;
+            position: relative;
+        }
+        
+        /* Better table scrolling */
+        .metrics-table {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 150px !important;
+            }
+            .metrics-table {
+                max-height: 200px;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8">
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-800">
-                <i class="fas fa-server mr-2"></i>Server Monitor Dashboard
+    <div class="dashboard-container container mx-auto px-4 py-4">
+        <!-- Header - More Compact -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">
+                <i class="fas fa-server mr-2"></i>Server Monitor
             </h1>
-            <div class="text-sm text-gray-600">
+            <div class="text-xs sm:text-sm text-gray-600 bg-white px-3 py-1 rounded shadow">
                 <i class="fas fa-clock mr-1"></i>
-                <span id="current-time">{{ now()->format('Y-m-d H:i:s') }}</span>
-                <span class="mx-2">•</span>
+                <span id="current-time">{{ now()->format('H:i:s') }}</span>
+                <span class="mx-1">•</span>
                 <span id="uptime">{{ $currentStats['server_info']['uptime'] ?? 'N/A' }}</span>
             </div>
         </div>
 
-        <!-- Alert Banner (if any alerts) -->
+        <!-- Alert Banner - More Compact -->
         @php
             $hasAlerts = $currentStats['thresholds']['cpu_exceeded'] || 
                          $currentStats['thresholds']['ram_exceeded'] || 
@@ -49,185 +79,158 @@
         @endphp
         
         @if($hasAlerts)
-        <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 glow-alert rounded">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-exclamation-triangle text-red-400 text-xl"></i>
-                </div>
-                <div class="ml-3">
-                    <p class="text-sm text-red-700 font-bold">
-                        <i class="fas fa-bell mr-1"></i>ALERT: Server resources exceeded thresholds!
-                    </p>
-                    <div class="mt-1 text-sm text-red-600">
-                        @if($currentStats['thresholds']['cpu_exceeded'])
-                        <span class="mr-3"><i class="fas fa-microchip mr-1"></i>CPU: {{ $currentStats['cpu'] }}%</span>
-                        @endif
-                        @if($currentStats['thresholds']['ram_exceeded'])
-                        <span class="mr-3"><i class="fas fa-memory mr-1"></i>RAM: {{ $currentStats['ram']['usage_percent'] }}%</span>
-                        @endif
-                        @if($currentStats['thresholds']['disk_exceeded'])
-                        <span class="mr-3"><i class="fas fa-hard-drive mr-1"></i>Disk: {{ $currentStats['disk']['usage_percent'] }}%</span>
-                        @endif
-                        @if(($currentStats['swap']['usage_percent'] ?? 0) > ($additionalThresholds['swap_threshold'] ?? 50))
-                        <span class="mr-3"><i class="fas fa-exchange-alt mr-1"></i>Swap: {{ $currentStats['swap']['usage_percent'] ?? 0 }}%</span>
-                        @endif
-                    </div>
+        <div class="bg-red-50 border-l-4 border-red-500 p-3 mb-4 rounded text-sm">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-400 mr-2"></i>
+                <span class="font-bold text-red-700">ALERT:</span>
+                <div class="ml-2 flex flex-wrap gap-2">
+                    @if($currentStats['thresholds']['cpu_exceeded'])
+                    <span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs">
+                        <i class="fas fa-microchip mr-1"></i>CPU: {{ $currentStats['cpu'] }}%
+                    </span>
+                    @endif
+                    @if($currentStats['thresholds']['ram_exceeded'])
+                    <span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs">
+                        <i class="fas fa-memory mr-1"></i>RAM: {{ $currentStats['ram']['usage_percent'] }}%
+                    </span>
+                    @endif
+                    @if($currentStats['thresholds']['disk_exceeded'])
+                    <span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs">
+                        <i class="fas fa-hard-drive mr-1"></i>Disk: {{ $currentStats['disk']['usage_percent'] }}%
+                    </span>
+                    @endif
                 </div>
             </div>
         </div>
         @endif
 
-        <!-- Core Resources Row -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <!-- Core Resources Row - More Compact -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <!-- CPU Card -->
-            <div class="bg-white rounded-lg shadow-lg p-6" x-data="{cpu: {{ $currentStats['cpu'] }}, threshold: {{ $currentStats['thresholds']['cpu_threshold'] }}}">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-gray-700">
-                        <i class="fas fa-microchip mr-2"></i>CPU
+            <div class="bg-white rounded-lg shadow p-4" x-data="{cpu: {{ $currentStats['cpu'] }}, threshold: {{ $currentStats['thresholds']['cpu_threshold'] }}}">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="font-semibold text-gray-700 text-sm">
+                        <i class="fas fa-microchip mr-1"></i>CPU
                     </h2>
-                    <span class="text-2xl font-bold" :class="cpu > threshold ? 'text-red-600' : 'text-green-600'">
+                    <span class="text-xl font-bold" :class="cpu > threshold ? 'text-red-600' : 'text-green-600'">
                         <span x-text="cpu.toFixed(1)"></span>%
                     </span>
                 </div>
                 <div class="relative pt-1">
-                    <div class="overflow-hidden h-4 mb-3 text-xs flex rounded bg-gray-200">
+                    <div class="overflow-hidden h-2 mb-2 text-xs flex rounded bg-gray-200">
                         <div :style="'width: ' + Math.min(cpu, 100) + '%'" 
                              :class="cpu > threshold ? 'bg-red-500 progress-bar' : 'bg-blue-500 progress-bar'"
                              class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center"></div>
                     </div>
-                    <div class="flex justify-between text-sm">
-                        <span>Threshold: {{ $currentStats['thresholds']['cpu_threshold'] }}%</span>
+                    <div class="flex justify-between text-xs">
+                        <span>Thresh: {{ $currentStats['thresholds']['cpu_threshold'] }}%</span>
                         <span :class="cpu > threshold ? 'text-red-600 font-bold' : 'text-green-600'">
                             <i class="fas" :class="cpu > threshold ? 'fa-exclamation-triangle' : 'fa-check-circle'"></i>
-                            <span x-text="cpu > threshold ? ' Alert' : ' Normal'"></span>
+                            <span x-text="cpu > threshold ? ' Alert' : ' OK'"></span>
                         </span>
                     </div>
                 </div>
-                @if(isset($currentStats['server_info']['cpu_count']))
-                <div class="mt-3 text-sm text-gray-500">
-                    <i class="fas fa-layer-group mr-1"></i>Cores: {{ $currentStats['server_info']['cpu_count'] ?? 1 }}
-                </div>
-                @endif
             </div>
 
             <!-- RAM Card -->
-            <div class="bg-white rounded-lg shadow-lg p-6" x-data="{ram: {{ $currentStats['ram']['usage_percent'] }}, threshold: {{ $currentStats['thresholds']['ram_threshold'] }}}">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-gray-700">
-                        <i class="fas fa-memory mr-2"></i>RAM
+            <div class="bg-white rounded-lg shadow p-4" x-data="{ram: {{ $currentStats['ram']['usage_percent'] }}, threshold: {{ $currentStats['thresholds']['ram_threshold'] }}}">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="font-semibold text-gray-700 text-sm">
+                        <i class="fas fa-memory mr-1"></i>RAM
                     </h2>
-                    <span class="text-2xl font-bold" :class="ram > threshold ? 'text-red-600' : 'text-green-600'">
+                    <span class="text-xl font-bold" :class="ram > threshold ? 'text-red-600' : 'text-green-600'">
                         <span x-text="ram.toFixed(1)"></span>%
                     </span>
                 </div>
                 <div class="relative pt-1">
-                    <div class="overflow-hidden h-4 mb-3 text-xs flex rounded bg-gray-200">
+                    <div class="overflow-hidden h-2 mb-2 text-xs flex rounded bg-gray-200">
                         <div :style="'width: ' + Math.min(ram, 100) + '%'" 
                              :class="ram > threshold ? 'bg-red-500 progress-bar' : 'bg-blue-500 progress-bar'"
                              class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center"></div>
                     </div>
-                    <div class="grid grid-cols-2 gap-1 text-sm">
-                        <div class="text-gray-600">Total:</div><div>{{ $currentStats['ram']['total'] }}</div>
-                        <div class="text-gray-600">Used:</div><div>{{ $currentStats['ram']['used'] }}</div>
-                        <div class="text-gray-600">Free:</div><div>{{ $currentStats['ram']['free'] }}</div>
-                        <div class="text-gray-600">Threshold:</div><div>{{ $currentStats['thresholds']['ram_threshold'] }}%</div>
+                    <div class="grid grid-cols-2 gap-1 text-xs">
+                        <div class="text-gray-600 truncate">Used:</div><div class="truncate">{{ $currentStats['ram']['used'] }}</div>
+                        <div class="text-gray-600 truncate">Free:</div><div class="truncate">{{ $currentStats['ram']['free'] }}</div>
                     </div>
                 </div>
             </div>
 
             <!-- Disk Card -->
-            <div class="bg-white rounded-lg shadow-lg p-6" x-data="{disk: {{ $currentStats['disk']['usage_percent'] }}, threshold: {{ $currentStats['thresholds']['disk_threshold'] }}}">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-gray-700">
-                        <i class="fas fa-hard-drive mr-2"></i>Disk
+            <div class="bg-white rounded-lg shadow p-4" x-data="{disk: {{ $currentStats['disk']['usage_percent'] }}, threshold: {{ $currentStats['thresholds']['disk_threshold'] }}}">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="font-semibold text-gray-700 text-sm">
+                        <i class="fas fa-hard-drive mr-1"></i>Disk
                     </h2>
-                    <span class="text-2xl font-bold" :class="disk > threshold ? 'text-red-600' : 'text-green-600'">
+                    <span class="text-xl font-bold" :class="disk > threshold ? 'text-red-600' : 'text-green-600'">
                         <span x-text="disk.toFixed(1)"></span>%
                     </span>
                 </div>
                 <div class="relative pt-1">
-                    <div class="overflow-hidden h-4 mb-3 text-xs flex rounded bg-gray-200">
+                    <div class="overflow-hidden h-2 mb-2 text-xs flex rounded bg-gray-200">
                         <div :style="'width: ' + Math.min(disk, 100) + '%'" 
                              :class="disk > threshold ? 'bg-red-500 progress-bar' : 'bg-blue-500 progress-bar'"
                              class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center"></div>
                     </div>
-                    <div class="grid grid-cols-2 gap-1 text-sm">
-                        <div class="text-gray-600">Total:</div><div>{{ $currentStats['disk']['total'] }}</div>
-                        <div class="text-gray-600">Used:</div><div>{{ $currentStats['disk']['used'] }}</div>
-                        <div class="text-gray-600">Free:</div><div>{{ $currentStats['disk']['free'] }}</div>
-                        <div class="text-gray-600">Threshold:</div><div>{{ $currentStats['thresholds']['disk_threshold'] }}%</div>
+                    <div class="grid grid-cols-2 gap-1 text-xs">
+                        <div class="text-gray-600 truncate">Used:</div><div class="truncate">{{ $currentStats['disk']['used'] }}</div>
+                        <div class="text-gray-600 truncate">Free:</div><div class="truncate">{{ $currentStats['disk']['free'] }}</div>
                     </div>
                 </div>
             </div>
 
             <!-- Swap Card -->
-            <div class="bg-white rounded-lg shadow-lg p-6" x-data="{swap: {{ $currentStats['swap']['usage_percent'] ?? 0 }}, threshold: {{ $additionalThresholds['swap_threshold'] ?? 50 }}}">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-gray-700">
-                        <i class="fas fa-exchange-alt mr-2"></i>Swap
+            <div class="bg-white rounded-lg shadow p-4" x-data="{swap: {{ $currentStats['swap']['usage_percent'] ?? 0 }}, threshold: {{ $additionalThresholds['swap_threshold'] ?? 50 }}}">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="font-semibold text-gray-700 text-sm">
+                        <i class="fas fa-exchange-alt mr-1"></i>Swap
                     </h2>
-                    <span class="text-2xl font-bold" :class="swap > threshold ? 'text-yellow-600' : 'text-green-600'">
+                    <span class="text-xl font-bold" :class="swap > threshold ? 'text-yellow-600' : 'text-green-600'">
                         <span x-text="swap.toFixed(1)"></span>%
                     </span>
                 </div>
                 <div class="relative pt-1">
-                    <div class="overflow-hidden h-4 mb-3 text-xs flex rounded bg-gray-200">
+                    <div class="overflow-hidden h-2 mb-2 text-xs flex rounded bg-gray-200">
                         <div :style="'width: ' + Math.min(swap, 100) + '%'" 
                              :class="swap > threshold ? 'bg-yellow-500 progress-bar' : 'bg-blue-400 progress-bar'"
                              class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center"></div>
                     </div>
-                    <div class="grid grid-cols-2 gap-1 text-sm">
-                        <div class="text-gray-600">Total:</div><div>{{ $currentStats['swap']['total'] ?? '0 B' }}</div>
-                        <div class="text-gray-600">Used:</div><div>{{ $currentStats['swap']['used'] ?? '0 B' }}</div>
-                        <div class="text-gray-600">Free:</div><div>{{ $currentStats['swap']['free'] ?? '0 B' }}</div>
-                        <div class="text-gray-600">Threshold:</div><div>{{ $additionalThresholds['swap_threshold'] ?? 50 }}%</div>
+                    <div class="grid grid-cols-2 gap-1 text-xs">
+                        <div class="text-gray-600 truncate">Used:</div><div class="truncate">{{ $currentStats['swap']['used'] ?? '0 B' }}</div>
+                        <div class="text-gray-600 truncate">Free:</div><div class="truncate">{{ $currentStats['swap']['free'] ?? '0 B' }}</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Second Row: Network & Services -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Second Row: Network & Services - More Compact -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
             <!-- Network Stats -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-semibold mb-4 text-gray-700">
-                    <i class="fas fa-network-wired mr-2"></i>Network
+            <div class="bg-white rounded-lg shadow p-4">
+                <h2 class="font-semibold mb-3 text-gray-700 text-sm">
+                    <i class="fas fa-network-wired mr-1"></i>Network
                 </h2>
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-blue-50 p-4 rounded">
-                            <div class="text-sm text-gray-500">Connections</div>
-                            <div class="text-2xl font-bold">{{ $currentStats['network']['total_connections'] ?? 0 }}</div>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-blue-50 p-3 rounded">
+                            <div class="text-xs text-gray-500">Connections</div>
+                            <div class="text-lg font-bold">{{ $currentStats['network']['total_connections'] ?? 0 }}</div>
                         </div>
-                        <div class="bg-green-50 p-4 rounded">
-                            <div class="text-sm text-gray-500">Established</div>
-                            <div class="text-2xl font-bold">{{ $currentStats['network']['established_connections'] ?? 0 }}</div>
+                        <div class="bg-green-50 p-3 rounded">
+                            <div class="text-xs text-gray-500">Established</div>
+                            <div class="text-lg font-bold">{{ $currentStats['network']['established_connections'] ?? 0 }}</div>
                         </div>
                     </div>
                     
                     <!-- SSL Certificate -->
                     @if(isset($currentStats['ssl']['valid']))
-                    <div class="border-t pt-4">
-                        <h3 class="font-semibold mb-2 text-gray-700">
-                            <i class="fas fa-lock mr-2"></i>SSL Certificate
-                        </h3>
-                        <div class="space-y-2">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Status:</span>
-                                <span class="{{ $currentStats['ssl']['status'] == 'valid' ? 'text-green-600' : ($currentStats['ssl']['status'] == 'warning' ? 'text-yellow-600' : 'text-red-600') }} font-bold">
-                                    {{ $currentStats['ssl']['status'] ?? 'unknown' }}
-                                </span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Expires:</span>
-                                <span>{{ $currentStats['ssl']['expiry_date'] ?? 'N/A' }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Days Left:</span>
-                                <span class="{{ ($currentStats['ssl']['days_remaining'] ?? 0) < 30 ? 'text-yellow-600 font-bold' : 'text-green-600' }}">
-                                    {{ $currentStats['ssl']['days_remaining'] ?? 0 }} days
-                                </span>
-                            </div>
+                    <div class="border-t pt-3">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-gray-600">
+                                <i class="fas fa-lock mr-1"></i>SSL
+                            </span>
+                            <span class="{{ $currentStats['ssl']['status'] == 'valid' ? 'text-green-600' : ($currentStats['ssl']['status'] == 'warning' ? 'text-yellow-600' : 'text-red-600') }} font-bold">
+                                {{ $currentStats['ssl']['days_remaining'] ?? 0 }}d
+                            </span>
                         </div>
                     </div>
                     @endif
@@ -235,79 +238,41 @@
             </div>
 
             <!-- Services Status -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-semibold mb-4 text-gray-700">
-                    <i class="fas fa-cogs mr-2"></i>Services
+            <div class="bg-white rounded-lg shadow p-4">
+                <h2 class="font-semibold mb-3 text-gray-700 text-sm">
+                    <i class="fas fa-cogs mr-1"></i>Services
                 </h2>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div class="grid grid-cols-3 gap-1">
                     @foreach($currentStats['services'] as $service => $status)
-                    <div class="p-3 rounded text-center status-badge {{ $status == 'running' ? 'bg-green-100 text-green-800 border border-green-200' : ($status == 'stopped' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-gray-100 text-gray-800 border border-gray-200') }}">
-                        <div class="font-semibold truncate" title="{{ $service }}">{{ $service }}</div>
-                        <div class="text-xs mt-1">
+                    <div class="p-2 rounded text-center text-xs status-badge {{ $status == 'running' ? 'bg-green-100 text-green-800' : ($status == 'stopped' ? 'bg-red-100 text-red-800' : 'bg-gray-100') }}">
+                        <div class="font-semibold truncate" title="{{ $service }}">{{ substr($service, 0, 8) }}</div>
+                        <div class="{{ $status == 'running' ? 'text-green-600' : 'text-red-600' }}">
                             @if($status == 'running')
-                            <i class="fas fa-check-circle"></i>
-                            @elseif($status == 'stopped')
-                            <i class="fas fa-times-circle"></i>
+                            <i class="fas fa-check"></i>
                             @else
-                            <i class="fas fa-question-circle"></i>
+                            <i class="fas fa-times"></i>
                             @endif
-                            {{ $status }}
                         </div>
                     </div>
                     @endforeach
                 </div>
-                
-                <!-- Database Status -->
-                @if(!empty($currentStats['database']))
-                <div class="border-t mt-4 pt-4">
-                    <h3 class="font-semibold mb-2 text-gray-700">
-                        <i class="fas fa-database mr-2"></i>Database
-                    </h3>
-                    <div class="grid grid-cols-3 gap-2 text-sm">
-                        <div class="text-center p-2 bg-blue-50 rounded">
-                            <div class="text-gray-500">Connections</div>
-                            <div class="font-bold">{{ $currentStats['database']['connections']['current'] ?? 0 }}/{{ $currentStats['database']['connections']['max'] ?? 0 }}</div>
-                        </div>
-                        <div class="text-center p-2 bg-green-50 rounded">
-                            <div class="text-gray-500">Processes</div>
-                            <div class="font-bold">{{ $currentStats['database']['active_processes'] ?? 0 }}</div>
-                        </div>
-                        <div class="text-center p-2 bg-purple-50 rounded">
-                            <div class="text-gray-500">Uptime</div>
-                            <div class="font-bold">{{ $currentStats['database']['uptime'] ?? 'N/A' }}</div>
-                        </div>
-                    </div>
-                </div>
-                @endif
             </div>
 
             <!-- Top Processes -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-semibold mb-4 text-gray-700">
-                    <i class="fas fa-list mr-2"></i>Top Processes
+            <div class="bg-white rounded-lg shadow p-4">
+                <h2 class="font-semibold mb-3 text-gray-700 text-sm">
+                    <i class="fas fa-list mr-1"></i>Top Processes
                 </h2>
-                <div class="space-y-4">
+                <div class="space-y-2">
                     <div>
-                        <h3 class="font-semibold mb-2 text-sm text-gray-600">By CPU</h3>
-                        <div class="space-y-1 max-h-32 overflow-y-auto">
-                            @forelse(array_slice($currentStats['processes']['by_cpu'] ?? [], 0, 5) as $process)
-                            <div class="text-xs p-2 bg-gray-50 rounded truncate" title="{{ $process }}">
-                                {{ Str::limit($process, 80) }}
+                        <h3 class="font-semibold mb-1 text-xs text-gray-600">CPU</h3>
+                        <div class="space-y-1 max-h-20 overflow-y-auto text-xs">
+                            @forelse(array_slice($currentStats['processes']['by_cpu'] ?? [], 0, 3) as $process)
+                            <div class="p-1 bg-gray-50 rounded truncate" title="{{ $process }}">
+                                {{ Str::limit($process, 60) }}
                             </div>
                             @empty
-                            <div class="text-sm text-gray-500 text-center p-2">No processes found</div>
-                            @endforelse
-                        </div>
-                    </div>
-                    <div>
-                        <h3 class="font-semibold mb-2 text-sm text-gray-600">By Memory</h3>
-                        <div class="space-y-1 max-h-32 overflow-y-auto">
-                            @forelse(array_slice($currentStats['processes']['by_memory'] ?? [], 0, 5) as $process)
-                            <div class="text-xs p-2 bg-gray-50 rounded truncate" title="{{ $process }}">
-                                {{ Str::limit($process, 80) }}
-                            </div>
-                            @empty
-                            <div class="text-sm text-gray-500 text-center p-2">No processes found</div>
+                            <div class="text-xs text-gray-500 text-center p-1">No processes</div>
                             @endforelse
                         </div>
                     </div>
@@ -315,131 +280,76 @@
             </div>
         </div>
 
-        <!-- Control Panel & Logs -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <!-- Control Panel -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-semibold mb-4 text-gray-700">
-                    <i class="fas fa-sliders-h mr-2"></i>Control Panel
-                </h2>
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="refreshAllStats()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded flex items-center justify-center transition">
-                        <i class="fas fa-sync-alt mr-2"></i> Refresh All
-                    </button>
-                    <button onclick="collectMetrics()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded flex items-center justify-center transition">
-                        <i class="fas fa-database mr-2"></i> Collect Metrics
-                    </button>
-                    <button onclick="runMonitor()" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded flex items-center justify-center transition">
-                        <i class="fas fa-bell mr-2"></i> Check Alerts
-                    </button>
-                    <button onclick="testEmail()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded flex items-center justify-center transition">
-                        <i class="fas fa-envelope mr-2"></i> Test Email
-                    </button>
-                </div>
-                
-                <!-- Quick Actions -->
-                <div class="mt-6 border-t pt-4">
-                    <h3 class="font-semibold mb-3 text-gray-700">Quick Actions</h3>
-                    <div class="flex flex-wrap gap-2">
-                        <button onclick="checkServices()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm py-2 px-3 rounded flex items-center">
-                            <i class="fas fa-cog mr-1"></i> Services
-                        </button>
-                        <button onclick="checkNetwork()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm py-2 px-3 rounded flex items-center">
-                            <i class="fas fa-network-wired mr-1"></i> Network
-                        </button>
-                        <button onclick="checkLogs()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm py-2 px-3 rounded flex items-center">
-                            <i class="fas fa-file-alt mr-1"></i> Logs
-                        </button>
-                        <button onclick="checkDatabase()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm py-2 px-3 rounded flex items-center">
-                            <i class="fas fa-database mr-1"></i> Database
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Log Summary -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-semibold mb-4 text-gray-700">
-                    <i class="fas fa-file-alt mr-2"></i>Log Summary
-                </h2>
-                <div class="space-y-3 max-h-64 overflow-y-auto">
-                    @forelse($currentStats['logs'] as $logName => $logData)
-                    <div class="border-b pb-3 last:border-0">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="font-medium text-gray-700">{{ $logName }}</span>
-                            <span class="text-sm text-gray-500">{{ $logData['size'] ?? 'N/A' }}</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">Last modified: {{ $logData['last_modified'] ?? 'N/A' }}</span>
-                            @if(($logData['recent_errors'] ?? 0) > 0)
-                            <span class="text-red-600 font-bold">
-                                <i class="fas fa-exclamation-circle mr-1"></i>{{ $logData['recent_errors'] }} errors
-                            </span>
-                            @else
-                            <span class="text-green-600">
-                                <i class="fas fa-check-circle mr-1"></i>Clean
-                            </span>
-                            @endif
-                        </div>
-                    </div>
-                    @empty
-                    <div class="text-center text-gray-500 py-4">
-                        <i class="fas fa-file-alt text-3xl mb-2"></i>
-                        <p>No log data available</p>
-                    </div>
-                    @endforelse
-                </div>
+        <!-- Control Panel - More Compact -->
+        <div class="bg-white rounded-lg shadow p-4 mb-4">
+            <h2 class="font-semibold mb-3 text-gray-700 text-sm">
+                <i class="fas fa-sliders-h mr-1"></i>Control Panel
+            </h2>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button onclick="refreshAllStats()" class="bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold py-2 px-3 rounded flex items-center justify-center transition">
+                    <i class="fas fa-sync-alt mr-1"></i> Refresh
+                </button>
+                <button onclick="collectMetrics()" class="bg-green-500 hover:bg-green-600 text-white text-sm font-bold py-2 px-3 rounded flex items-center justify-center transition">
+                    <i class="fas fa-database mr-1"></i> Collect
+                </button>
+                <button onclick="runMonitor()" class="bg-purple-500 hover:bg-purple-600 text-white text-sm font-bold py-2 px-3 rounded flex items-center justify-center transition">
+                    <i class="fas fa-bell mr-1"></i> Alerts
+                </button>
+                <button onclick="testEmail()" class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-bold py-2 px-3 rounded flex items-center justify-center transition">
+                    <i class="fas fa-envelope mr-1"></i> Test Email
+                </button>
             </div>
         </div>
 
-        <!-- Historical Charts -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-gray-700">
-                    <i class="fas fa-chart-line mr-2"></i>Historical Usage (24 Hours)
+        <!-- Historical Charts - Fixed Height -->
+        <div class="bg-white rounded-lg shadow p-4 mb-4">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="font-semibold text-gray-700 text-sm">
+                    <i class="fas fa-chart-line mr-1"></i>History (24h)
                 </h2>
-                <div class="flex space-x-2">
-                    <button onclick="updateChart('24h')" class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded">24H</button>
-                    <button onclick="updateChart('7d')" class="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded">7D</button>
-                    <button onclick="updateChart('30d')" class="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded">30D</button>
+                <div class="flex space-x-1">
+                    <button onclick="updateChart('24h')" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">24H</button>
+                    <button onclick="updateChart('7d')" class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">7D</button>
                 </div>
             </div>
-            <canvas id="historyChart" height="120"></canvas>
+            <div class="chart-container">
+                <canvas id="historyChart"></canvas>
+            </div>
         </div>
 
-        <!-- Recent Metrics & Server Info -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <!-- Recent Metrics -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-semibold mb-4 text-gray-700">
-                    <i class="fas fa-history mr-2"></i>Recent Metrics
+        <!-- Recent Metrics & Server Info - Side by Side -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+            <!-- Recent Metrics - Compact -->
+            <div class="bg-white rounded-lg shadow p-4">
+                <h2 class="font-semibold mb-3 text-gray-700 text-sm">
+                    <i class="fas fa-history mr-1"></i>Recent Metrics
                 </h2>
-                <div class="overflow-x-auto max-h-96">
+                <div class="metrics-table">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50 sticky top-0">
                             <tr>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">CPU</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">RAM</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Disk</th>
+                                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">CPU</th>
+                                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">RAM</th>
+                                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">Disk</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($latestMetrics as $metric)
+                            @foreach($latestMetrics->take(10) as $metric)
                             <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-3 whitespace-nowrap text-sm">{{ $metric->created_at->format('H:i:s') }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    <span class="{{ $metric->cpu_usage > $currentStats['thresholds']['cpu_threshold'] ? 'text-red-600 font-bold' : 'text-green-600' }}">
+                                <td class="px-2 py-1 whitespace-nowrap text-xs">{{ $metric->created_at->format('H:i') }}</td>
+                                <td class="px-2 py-1 whitespace-nowrap">
+                                    <span class="{{ $metric->cpu_usage > $currentStats['thresholds']['cpu_threshold'] ? 'text-red-600' : 'text-green-600' }}">
                                         {{ number_format($metric->cpu_usage, 1) }}%
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    <span class="{{ $metric->ram_usage > $currentStats['thresholds']['ram_threshold'] ? 'text-red-600 font-bold' : 'text-green-600' }}">
+                                <td class="px-2 py-1 whitespace-nowrap">
+                                    <span class="{{ $metric->ram_usage > $currentStats['thresholds']['ram_threshold'] ? 'text-red-600' : 'text-green-600' }}">
                                         {{ number_format($metric->ram_usage, 1) }}%
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    <span class="{{ $metric->disk_usage > $currentStats['thresholds']['disk_threshold'] ? 'text-red-600 font-bold' : 'text-green-600' }}">
+                                <td class="px-2 py-1 whitespace-nowrap">
+                                    <span class="{{ $metric->disk_usage > $currentStats['thresholds']['disk_threshold'] ? 'text-red-600' : 'text-green-600' }}">
                                         {{ number_format($metric->disk_usage, 1) }}%
                                     </span>
                                 </td>
@@ -450,46 +360,44 @@
                 </div>
             </div>
 
-            <!-- Server Information -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-semibold mb-4 text-gray-700">
-                    <i class="fas fa-info-circle mr-2"></i>Server Information
+            <!-- Server Information - Compact -->
+            <div class="bg-white rounded-lg shadow p-4">
+                <h2 class="font-semibold mb-3 text-gray-700 text-sm">
+                    <i class="fas fa-info-circle mr-1"></i>Server Info
                 </h2>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-2">
                     @foreach([
-                        ['icon' => 'code', 'label' => 'PHP Version', 'value' => $currentStats['server_info']['php_version'] ?? 'N/A'],
-                        ['icon' => 'laravel', 'label' => 'Laravel Version', 'value' => $currentStats['server_info']['laravel_version'] ?? 'N/A'],
-                        ['icon' => 'server', 'label' => 'Server OS', 'value' => $currentStats['server_info']['server_os'] ?? 'N/A'],
-                        ['icon' => 'layer-group', 'label' => 'CPU Cores', 'value' => $currentStats['server_info']['cpu_count'] ?? 'N/A'],
-                        ['icon' => 'clock', 'label' => 'Uptime', 'value' => $currentStats['server_info']['uptime'] ?? 'N/A'],
-                        ['icon' => 'desktop', 'label' => 'Hostname', 'value' => $currentStats['server_info']['hostname'] ?? 'N/A'],
-                        ['icon' => 'globe', 'label' => 'IP Address', 'value' => $currentStats['server_info']['ip_address'] ?? 'N/A'],
-                        ['icon' => 'hdd', 'label' => 'Server Software', 'value' => $currentStats['server_info']['server_software'] ?? 'N/A'],
+                        ['icon' => 'code', 'label' => 'PHP', 'value' => $currentStats['server_info']['php_version'] ?? 'N/A'],
+                        ['icon' => 'laravel', 'label' => 'Laravel', 'value' => $currentStats['server_info']['laravel_version'] ?? 'N/A'],
+                        ['icon' => 'server', 'label' => 'OS', 'value' => Str::limit($currentStats['server_info']['server_os'] ?? 'N/A', 15)],
+                        ['icon' => 'layer-group', 'label' => 'Cores', 'value' => $currentStats['server_info']['cpu_count'] ?? 1],
+                        ['icon' => 'clock', 'label' => 'Uptime', 'value' => Str::limit($currentStats['server_info']['uptime'] ?? 'N/A', 12)],
+                        ['icon' => 'desktop', 'label' => 'Host', 'value' => Str::limit($currentStats['server_info']['hostname'] ?? 'N/A', 12)],
                     ] as $info)
-                    <div class="bg-gray-50 p-3 rounded">
-                        <div class="flex items-center text-sm text-gray-500 mb-1">
-                            <i class="fas fa-{{ $info['icon'] }} mr-2"></i>
+                    <div class="bg-gray-50 p-2 rounded">
+                        <div class="flex items-center text-xs text-gray-500 mb-1">
+                            <i class="fas fa-{{ $info['icon'] }} mr-1"></i>
                             {{ $info['label'] }}
                         </div>
-                        <div class="font-semibold truncate" title="{{ $info['value'] }}">{{ $info['value'] }}</div>
+                        <div class="font-semibold text-sm truncate" title="{{ $info['value'] }}">{{ $info['value'] }}</div>
                     </div>
                     @endforeach
                 </div>
             </div>
         </div>
 
-        <!-- Footer -->
-        <div class="text-center text-gray-500 text-sm mt-8 pt-6 border-t">
+        <!-- Footer - Compact -->
+        <div class="text-center text-gray-500 text-xs mt-4 pt-4 border-t">
             <p>
                 <i class="fas fa-heart text-red-400 mr-1"></i>
-                Server Monitor v1.0 • Last updated: <span id="last-updated">{{ now()->format('H:i:s') }}</span>
+                Server Monitor • Updated: <span id="last-updated">{{ now()->format('H:i') }}</span>
                 • Auto-refresh: <span id="refresh-countdown">30</span>s
             </p>
         </div>
     </div>
 
     <script>
-        // Initialize historical chart
+        // Initialize historical chart with fixed height
         const historyCtx = document.getElementById('historyChart').getContext('2d');
         let historyChart = new Chart(historyCtx, {
             type: 'line',
@@ -497,31 +405,34 @@
                 labels: {!! json_encode($historicalData->pluck('created_at')->map(function($date) { return $date->format('H:i'); })->toArray()) !!},
                 datasets: [
                     {
-                        label: 'CPU %',
+                        label: 'CPU',
                         data: {!! json_encode($historicalData->pluck('cpu_usage')->toArray()) !!},
                         borderColor: 'rgb(59, 130, 246)',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        borderWidth: 2,
+                        borderWidth: 1.5,
                         tension: 0.4,
-                        fill: true
+                        fill: true,
+                        pointRadius: 0
                     },
                     {
-                        label: 'RAM %',
+                        label: 'RAM',
                         data: {!! json_encode($historicalData->pluck('ram_usage')->toArray()) !!},
                         borderColor: 'rgb(16, 185, 129)',
                         backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        borderWidth: 2,
+                        borderWidth: 1.5,
                         tension: 0.4,
-                        fill: true
+                        fill: true,
+                        pointRadius: 0
                     },
                     {
-                        label: 'Disk %',
+                        label: 'Disk',
                         data: {!! json_encode($historicalData->pluck('disk_usage')->toArray()) !!},
                         borderColor: 'rgb(245, 158, 11)',
                         backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        borderWidth: 2,
+                        borderWidth: 1.5,
                         tension: 0.4,
-                        fill: true
+                        fill: true,
+                        pointRadius: 0
                     }
                 ]
             },
@@ -530,7 +441,23 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
+                        display: true,
                         position: 'top',
+                        labels: {
+                            boxWidth: 10,
+                            padding: 5,
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        titleFont: { size: 11 },
+                        bodyFont: { size: 11 },
+                        padding: 8
                     }
                 },
                 scales: {
@@ -538,23 +465,41 @@
                         beginAtZero: true,
                         max: 100,
                         grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false
                         },
                         ticks: {
                             callback: function(value) {
                                 return value + '%';
-                            }
+                            },
+                            font: {
+                                size: 9
+                            },
+                            padding: 3
                         }
                     },
                     x: {
                         grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 9
+                            },
+                            maxRotation: 0,
+                            padding: 3
                         }
                     }
                 },
                 interaction: {
                     intersect: false,
                     mode: 'index'
+                },
+                elements: {
+                    line: {
+                        tension: 0.4
+                    }
                 }
             }
         });
@@ -563,7 +508,7 @@
         function updateCurrentTime() {
             const now = new Date();
             document.getElementById('current-time').textContent = 
-                now.toISOString().replace('T', ' ').substr(0, 19);
+                now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
         }
         setInterval(updateCurrentTime, 1000);
 
@@ -583,7 +528,7 @@
         // Refresh all stats function
         async function refreshAllStats() {
             try {
-                document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+                document.getElementById('last-updated').textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 
                 const response = await fetch('/refresh-stats');
                 const data = await response.json();
@@ -602,32 +547,11 @@
                     document.querySelector('[x-data*="swap"]').__x.$data.swap = data.swap?.usage_percent || 0;
                 }
                 
-                // Check for alerts
-                checkAlerts();
-                
                 // Reset countdown
                 refreshCountdown = 30;
                 
             } catch (error) {
                 console.error('Refresh error:', error);
-            }
-        }
-
-        // Check alerts function
-        async function checkAlerts() {
-            try {
-                const response = await fetch('/trigger-alerts');
-                const data = await response.json();
-                
-                if (data.has_alerts) {
-                    // Show alert banner
-                    const alertBanner = document.querySelector('.glow-alert');
-                    if (!alertBanner) {
-                        location.reload(); // Reload to show alert banner
-                    }
-                }
-            } catch (error) {
-                console.error('Alert check error:', error);
             }
         }
 
@@ -643,9 +567,6 @@
             const response = await fetch('/api/monitor-run');
             const result = await response.json();
             alert(result.message || 'Monitor run completed!');
-            if (result.alert_sent) {
-                alert('Alert email was sent!');
-            }
             refreshAllStats();
         }
 
@@ -658,35 +579,10 @@
             }
         }
 
-        // Quick action functions
-        async function checkServices() {
-            const response = await fetch('/service-status');
-            const data = await response.json();
-            alert('Services checked: ' + Object.keys(data.services || {}).length + ' services found');
-        }
-
-        async function checkNetwork() {
-            const response = await fetch('/network-info');
-            const data = await response.json();
-            alert('Network checked: ' + (data.network?.total_connections || 0) + ' connections');
-        }
-
-        async function checkLogs() {
-            const response = await fetch('/log-summary');
-            const data = await response.json();
-            alert('Logs checked: ' + Object.keys(data.logs || {}).length + ' log files');
-        }
-
-        async function checkDatabase() {
-            const response = await fetch('/database-info');
-            const data = await response.json();
-            alert('Database checked: ' + (data.database?.connections?.current || 0) + ' active connections');
-        }
-
         // Chart period switching
         async function updateChart(period) {
-            // Implement chart period switching
-            alert('Chart period switching to ' + period + ' - implement API endpoint for this');
+            alert('Chart period: ' + period);
+            // Implement API call here for different time ranges
         }
 
         // Initialize
