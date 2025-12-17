@@ -9,31 +9,39 @@ class SystemMonitorService
     public function getCpuUsage(): float
     {
         try {
-            if (function_exists('sys_getloadavg')) {
-                $load = sys_getloadavg();
-                return $load[0] ?? 0;
-            }
-            
-            // Alternative for Windows or when sys_getloadavg is not available
             if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
                 $output = [];
                 exec('wmic cpu get loadpercentage', $output);
-                if (isset($output[1])) {
-                    return (float) trim($output[1]);
-                }
+                return isset($output[1]) ? (float) trim($output[1]) : 0;
             } else {
-                $load = file_get_contents('/proc/loadavg');
-                $load = explode(' ', $load);
-                return (float) $load[0];
+                // Method 1: Use mpstat if available (most accurate)
+                $mpstat = @shell_exec('mpstat 1 1 | grep -i "average" | tail -1');
+                if ($mpstat) {
+                    $parts = preg_split('/\s+/', trim($mpstat));
+                    $idle = (float) end($parts);
+                    return round(100 - $idle, 2);
+                }
+                
+                // Method 2: Use /proc/stat calculation
+                $stat1 = file('/proc/stat');
+                $stats1 = explode(' ', preg_replace('!cpu +!', '', $stat1[0]));
+                sleep(1);
+                $stat2 = file('/proc/stat');
+                $stats2 = explode(' ', preg_replace('!cpu +!', '', $stat2[0]));
+                
+                $total1 = array_sum($stats1);
+                $total2 = array_sum($stats2);
+                
+                $total = $total2 - $total1;
+                $idle = $stats2[3] - $stats1[3];
+                
+                return $total > 0 ? round((($total - $idle) / $total) * 100, 2) : 0;
             }
-            
-            return 0;
         } catch (\Exception $e) {
             \Log::error('CPU usage error: ' . $e->getMessage());
             return 0;
         }
     }
-
     public function getRamUsage(): array
     {
         try {
