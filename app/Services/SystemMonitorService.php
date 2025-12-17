@@ -21,20 +21,20 @@ class SystemMonitorService
                     $idle = (float) end($parts);
                     return round(100 - $idle, 2);
                 }
-                
+
                 // Method 2: Use /proc/stat calculation
                 $stat1 = file('/proc/stat');
                 $stats1 = explode(' ', preg_replace('!cpu +!', '', $stat1[0]));
                 sleep(1);
                 $stat2 = file('/proc/stat');
                 $stats2 = explode(' ', preg_replace('!cpu +!', '', $stat2[0]));
-                
+
                 $total1 = array_sum($stats1);
                 $total2 = array_sum($stats2);
-                
+
                 $total = $total2 - $total1;
                 $idle = $stats2[3] - $stats1[3];
-                
+
                 return $total > 0 ? round((($total - $idle) / $total) * 100, 2) : 0;
             }
         } catch (\Exception $e) {
@@ -49,15 +49,15 @@ class SystemMonitorService
                 // Windows
                 $output = [];
                 exec('wmic OS get TotalVisibleMemorySize,FreePhysicalMemory', $output);
-                
+
                 if (isset($output[1])) {
                     $memory = preg_split('/\s+/', trim($output[1]));
                     $total = $memory[0] ?? 0;
                     $free = $memory[1] ?? 0;
                     $used = $total - $free;
-                    
+
                     $usage_percent = $total > 0 ? ($used / $total) * 100 : 0;
-                    
+
                     return [
                         'usage_percent' => round($usage_percent, 2),
                         'total' => $this->formatBytes($total * 1024),
@@ -70,15 +70,15 @@ class SystemMonitorService
                 $free = shell_exec('free -b');
                 $free = trim($free);
                 $free_arr = explode("\n", $free);
-                
+
                 if (isset($free_arr[1])) {
                     $mem = preg_split('/\s+/', $free_arr[1]);
                     $total = $mem[1] ?? 0;
                     $used = $mem[2] ?? 0;
                     $free = $mem[3] ?? 0;
-                    
+
                     $usage_percent = $total > 0 ? ($used / $total) * 100 : 0;
-                    
+
                     return [
                         'usage_percent' => round($usage_percent, 2),
                         'total' => $this->formatBytes($total),
@@ -87,14 +87,13 @@ class SystemMonitorService
                     ];
                 }
             }
-            
+
             return [
                 'usage_percent' => 0,
                 'total' => 'N/A',
                 'used' => 'N/A',
                 'free' => 'N/A'
             ];
-            
         } catch (\Exception $e) {
             \Log::error('RAM usage error: ' . $e->getMessage());
             return [
@@ -111,13 +110,13 @@ class SystemMonitorService
         try {
             $disk_total = disk_total_space('/');
             $disk_free = disk_free_space('/');
-            
+
             if ($disk_total === false) {
                 // Try current directory
                 $disk_total = disk_total_space('.');
                 $disk_free = disk_free_space('.');
             }
-            
+
             if ($disk_total !== false && $disk_free !== false) {
                 $disk_used = $disk_total - $disk_free;
                 $usage_percent = ($disk_used / $disk_total) * 100;
@@ -129,14 +128,13 @@ class SystemMonitorService
                     'free' => $this->formatBytes($disk_free)
                 ];
             }
-            
+
             return [
                 'usage_percent' => 0,
                 'total' => 'N/A',
                 'used' => 'N/A',
                 'free' => 'N/A'
             ];
-            
         } catch (\Exception $e) {
             \Log::error('Disk usage error: ' . $e->getMessage());
             return [
@@ -193,15 +191,15 @@ class SystemMonitorService
         if ($bytes <= 0) {
             return '0 B';
         }
-        
+
         $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
         $bytes = max($bytes, 0);
         $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
         $pow = min($pow, count($units) - 1);
-        
+
         // Calculate the formatted value
         $bytes /= pow(1024, $pow);
-        
+
         return round($bytes, $precision) . ' ' . $units[$pow];
     }
 
@@ -241,7 +239,7 @@ class SystemMonitorService
                 if ($cores !== null) {
                     return (int) trim($cores) ?: 1;
                 }
-                
+
                 // Alternative method
                 if (is_readable('/proc/cpuinfo')) {
                     $cpuinfo = file_get_contents('/proc/cpuinfo');
@@ -252,7 +250,7 @@ class SystemMonitorService
         } catch (\Exception $e) {
             \Log::error('CPU count error: ' . $e->getMessage());
         }
-        
+
         return 1;
     }
 
@@ -272,7 +270,7 @@ class SystemMonitorService
                 if ($uptime) {
                     return trim($uptime);
                 }
-                
+
                 // Alternative method
                 $uptime = @file_get_contents('/proc/uptime');
                 if ($uptime !== false) {
@@ -280,7 +278,7 @@ class SystemMonitorService
                     $days = floor($uptime / 86400);
                     $hours = floor(($uptime % 86400) / 3600);
                     $minutes = floor(($uptime % 3600) / 60);
-                    
+
                     if ($days > 0) {
                         return sprintf('%d days, %d hours, %d minutes', $days, $hours, $minutes);
                     } elseif ($hours > 0) {
@@ -293,7 +291,7 @@ class SystemMonitorService
         } catch (\Exception $e) {
             \Log::error('Uptime error: ' . $e->getMessage());
         }
-        
+
         return 'N/A';
     }
 
@@ -309,6 +307,231 @@ class SystemMonitorService
             'thresholds' => $this->checkThresholds(),
             'server_info' => $this->getServerInfo(),
             'timestamp' => now()->toDateTimeString()
+        ];
+    }
+
+    public function getNetworkStats(): array
+    {
+        try {
+            // Network interfaces
+            exec("ip -s link show", $output);
+            $interfaces = [];
+            $currentInterface = null;
+
+            foreach ($output as $line) {
+                if (preg_match('/^\d+:\s+(\w+):/', $line, $matches)) {
+                    $currentInterface = $matches[1];
+                    $interfaces[$currentInterface] = ['rx' => 0, 'tx' => 0];
+                } elseif ($currentInterface && preg_match('/RX:\s+bytes\s+(\d+)/', $line, $matches)) {
+                    $interfaces[$currentInterface]['rx'] = $this->formatBytes($matches[1]);
+                } elseif ($currentInterface && preg_match('/TX:\s+bytes\s+(\d+)/', $line, $matches)) {
+                    $interfaces[$currentInterface]['tx'] = $this->formatBytes($matches[1]);
+                }
+            }
+
+            // Active connections
+            $tcpConnections = (int) @exec("ss -tun | wc -l") - 1;
+            $establishedConnections = (int) @exec("ss -tun state established | wc -l") - 1;
+
+            return [
+                'interfaces' => $interfaces,
+                'total_connections' => $tcpConnections,
+                'established_connections' => $establishedConnections,
+                'connections_per_second' => $this->getConnectionsPerSecond(),
+            ];
+        } catch (\Exception $e) {
+            return ['error' => $e->getMessage()];
+        }
+    }
+    public function getDatabaseStatus(): array
+    {
+        try {
+            $pdo = new \PDO(
+                'mysql:host=' . env('DB_HOST', '127.0.0.1') . ';port=' . env('DB_PORT', '3306'),
+                env('DB_USERNAME', 'root'),
+                env('DB_PASSWORD', '')
+            );
+
+            // Get status variables
+            $stmt = $pdo->query("SHOW GLOBAL STATUS");
+            $statusVars = [];
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $statusVars[$row['Variable_name']] = $row['Value'];
+            }
+
+            // Get process list
+            $stmt = $pdo->query("SHOW PROCESSLIST");
+            $processes = $stmt->rowCount();
+
+            // Get connections
+            $connections = $statusVars['Threads_connected'] ?? 0;
+            $maxConnections = $statusVars['max_connections'] ?? 0;
+
+            return [
+                'version' => $pdo->getAttribute(\PDO::ATTR_SERVER_VERSION),
+                'connections' => [
+                    'current' => (int) $connections,
+                    'max' => (int) $maxConnections,
+                    'usage_percent' => $maxConnections > 0 ? round(($connections / $maxConnections) * 100, 2) : 0,
+                ],
+                'active_processes' => $processes,
+                'queries_per_second' => $statusVars['Queries'] ?? 0,
+                'slow_queries' => $statusVars['Slow_queries'] ?? 0,
+                'uptime' => $this->formatSeconds($statusVars['Uptime'] ?? 0),
+            ];
+        } catch (\Exception $e) {
+            return ['error' => $e->getMessage()];
+        }
+    }
+    public function getPHPFPMStatus(): array
+    {
+        $status = ['active' => false];
+
+        // Try to get from socket/status page
+        $ctx = stream_context_create(['http' => ['timeout' => 2]]);
+        $fpmStatus = @file_get_contents('http://localhost/status?json', false, $ctx);
+
+        if ($fpmStatus) {
+            $data = json_decode($fpmStatus, true);
+            if ($data) {
+                $status = [
+                    'active' => true,
+                    'pool' => $data['pool'] ?? 'unknown',
+                    'total_processes' => $data['total processes'] ?? 0,
+                    'active_processes' => $data['active processes'] ?? 0,
+                    'idle_processes' => $data['idle processes'] ?? 0,
+                    'max_children_reached' => $data['max children reached'] ?? 0,
+                    'slow_requests' => $data['slow requests'] ?? 0,
+                ];
+            }
+        }
+
+        return $status;
+    }
+    public function getSSLCertInfo($domain = null): array
+    {
+        if (!$domain) {
+            $domain = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        }
+
+        $command = "echo | openssl s_client -servername {$domain} -connect {$domain}:443 2>/dev/null | openssl x509 -noout -dates";
+        exec($command, $output);
+
+        $certInfo = ['valid' => false, 'days_remaining' => 0];
+
+        foreach ($output as $line) {
+            if (strpos($line, 'notAfter=') !== false) {
+                $expiryDate = str_replace('notAfter=', '', $line);
+                $expiryTimestamp = strtotime($expiryDate);
+                $daysRemaining = floor(($expiryTimestamp - time()) / (60 * 60 * 24));
+
+                $certInfo = [
+                    'valid' => $daysRemaining > 0,
+                    'expiry_date' => date('Y-m-d', $expiryTimestamp),
+                    'days_remaining' => $daysRemaining,
+                    'status' => $daysRemaining > 30 ? 'valid' : ($daysRemaining > 0 ? 'warning' : 'expired'),
+                ];
+            }
+        }
+
+        return $certInfo;
+    }
+    public function getLogStats(): array
+    {
+        $logFiles = [
+            '/var/log/syslog' => 'System Log',
+            '/var/log/auth.log' => 'Auth Log',
+            '/var/log/nginx/error.log' => 'Nginx Errors',
+            '/var/log/apache2/error.log' => 'Apache Errors',
+            storage_path('logs/laravel.log') => 'Laravel Log',
+        ];
+
+        $stats = [];
+        foreach ($logFiles as $path => $name) {
+            if (file_exists($path)) {
+                $size = filesize($path);
+                $lastModified = filemtime($path);
+                $errorCount = @exec("grep -i 'error\\|fatal\\|exception' " . escapeshellarg($path) . " | tail -20 | wc -l");
+
+                $stats[$name] = [
+                    'size' => $this->formatBytes($size),
+                    'last_modified' => date('Y-m-d H:i:s', $lastModified),
+                    'recent_errors' => (int) $errorCount,
+                    'path' => $path,
+                ];
+            }
+        }
+
+        return $stats;
+    }
+    public function getInodeUsage(): array
+    {
+        exec("df -i", $output);
+        $inodeData = [];
+
+        foreach (array_slice($output, 1) as $line) {
+            $parts = preg_split('/\s+/', $line);
+            if (count($parts) >= 6) {
+                $inodeData[] = [
+                    'filesystem' => $parts[0],
+                    'inodes' => $parts[1],
+                    'used' => $parts[2],
+                    'available' => $parts[3],
+                    'use_percent' => $parts[4],
+                    'mounted_on' => $parts[5],
+                ];
+            }
+        }
+
+        return $inodeData;
+    }
+    public function getDiskIO(): array
+    {
+        exec("iostat -d -x 1 2 | grep -A 10 'Device' | tail -n +3", $output);
+
+        $ioStats = [];
+        foreach ($output as $line) {
+            $parts = preg_split('/\s+/', trim($line));
+            if (count($parts) >= 7) {
+                $ioStats[$parts[0]] = [
+                    'read_kb_per_sec' => $parts[5] ?? 0,
+                    'write_kb_per_sec' => $parts[6] ?? 0,
+                    'utilization_percent' => $parts[13] ?? 0, // %util
+                ];
+            }
+        }
+
+        return $ioStats;
+    }
+    public function getServiceStatus(): array
+    {
+        $services = [
+            'nginx' => 'systemctl is-active nginx',
+            'apache2' => 'systemctl is-active apache2',
+            'mysql' => 'systemctl is-active mysql',
+            'mariadb' => 'systemctl is-active mariadb',
+            'redis' => 'systemctl is-active redis-server',
+            'php-fpm' => 'systemctl is-active php8.2-fpm', // Adjust version
+            'supervisor' => 'systemctl is-active supervisor',
+            'cron' => 'systemctl is-active cron',
+        ];
+
+        $status = [];
+        foreach ($services as $name => $command) {
+            $result = @shell_exec($command . " 2>/dev/null");
+            $status[$name] = trim($result) === 'active' ? 'running' : (trim($result) === 'inactive' ? 'stopped' : 'not found');
+        }
+
+        return $status;
+    }
+    public function getTopProcesses(): array
+    {
+        exec("ps aux --sort=-%cpu | head -6", $cpuProcesses);
+        exec("ps aux --sort=-%mem | head -6", $memProcesses);
+
+        return [
+            'by_cpu' => array_slice($cpuProcesses, 1, 5), // Skip header
+            'by_memory' => array_slice($memProcesses, 1, 5),
         ];
     }
 }
