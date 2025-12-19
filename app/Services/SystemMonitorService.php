@@ -716,4 +716,33 @@ class SystemMonitorService
     {
         return 0; // Simplified for now
     }
+    /**
+     * Get Disk Space Usage for all partitions
+     */
+    public function getDiskSpaceUsage(): array
+    {
+        try {
+            exec("df -h 2>/dev/null", $output);
+            $disks = [];
+            
+            foreach (array_slice($output, 1) as $line) {
+                $parts = preg_split('/\s+/', trim($line));
+                if (count($parts) >= 6) {
+                    $disks[] = [
+                        'filesystem' => $parts[0],
+                        'size' => $parts[1],
+                        'used' => $parts[2],
+                        'available' => $parts[3],
+                        'use_percent' => $parts[4],
+                        'mounted_on' => $parts[5],
+                        'alert' => (int) str_replace('%', '', $parts[4]) > 90
+                    ];
+                }
+            }
+            
+            return $disks;
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
 }

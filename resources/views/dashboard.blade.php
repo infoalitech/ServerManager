@@ -201,7 +201,37 @@
                 </div>
             </div>
         </div>
-
+        <!-- Disk Space Section -->
+        @if(!empty($currentStats['disk_space']))
+        <div class="bg-white rounded-lg shadow p-4 mb-4">
+            <h2 class="font-semibold mb-3 text-gray-700 text-sm">
+                <i class="fas fa-hdd mr-1"></i>Disk Space
+            </h2>
+            <div class="space-y-2 max-h-48 overflow-y-auto">
+                @foreach($currentStats['disk_space'] as $disk)
+                <div class="border rounded p-3 {{ $disk['alert'] ? 'border-red-300 bg-red-50' : '' }}">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-medium text-sm truncate" title="{{ $disk['filesystem'] }} on {{ $disk['mounted_on'] }}">
+                            {{ $disk['filesystem'] }}
+                        </span>
+                        <span class="text-sm font-bold {{ $disk['alert'] ? 'text-red-600' : 'text-blue-600' }}">
+                            {{ $disk['use_percent'] }}
+                        </span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-1.5 mb-1">
+                        <div class="bg-blue-500 h-1.5 rounded-full" 
+                            style="width: {{ $disk['use_percent'] }}"></div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-1 text-xs text-gray-600">
+                        <div>Used: {{ $disk['used'] }}</div>
+                        <div>Free: {{ $disk['available'] }}</div>
+                        <div>Total: {{ $disk['size'] }}</div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
         <!-- Second Row: Network & Services - More Compact -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
             <!-- Network Stats -->

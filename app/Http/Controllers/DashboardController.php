@@ -17,6 +17,7 @@ class DashboardController extends Controller
                 'cpu' => $monitor->getCpuUsage(),
                 'ram' => $monitor->getRamUsage(),
                 'disk' => $monitor->getDiskUsage(),
+                'disk_space' => $monitor->getDiskSpaceUsage(), // Add this line
                 'swap' => $monitor->getSwapUsage(),
                 'network' => $monitor->getNetworkStats(),
                 'processes' => $monitor->getTopProcesses(),
